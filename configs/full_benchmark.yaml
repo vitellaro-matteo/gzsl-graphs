@@ -1,0 +1,97 @@
+# Full benchmark configuration for Graph GZSL experiments.
+#
+# Usage:
+#   python scripts/run_experiments.py --config configs/full_benchmark.yaml
+#   python scripts/run_experiments.py --config configs/full_benchmark.yaml --models dgpn --datasets cora
+#
+# This runs all 5 models on all 10 datasets with 5 seeds each.
+# Total experiments: 4 models x 10 datasets x 5 seeds = 200 runs (+ ZeroG).
+#
+# Estimated time: ~24h on a single GPU (heavily dataset-dependent;
+# ogbn-arxiv and coauthor-cs/physics are much slower than cora/citeseer).
+
+data_root: ./data
+
+# Which models to run (comment out to skip)
+models_to_run:
+  - dgpn
+  - dbigcn
+  - icis
+  - baseline
+  - zerog
+
+datasets:
+  - cora
+  - citeseer
+  - c-m10-m
+  - ogbn-arxiv
+  - pubmed
+  - wikics
+  - amazon-computers
+  - amazon-photo
+  - coauthor-cs
+  - coauthor-physics
+
+seeds: [0, 1, 2, 3, 4]
+
+# ============================================================
+# Per-model hyperparameters
+# ============================================================
+
+models:
+  dgpn:
+    architecture:
+      K: 3
+      beta: 0.7
+      dropout: 0.5
+    training:
+      epochs: 10000
+      lr: 0.001
+      alpha: 1.0
+      patience: 100
+
+  dbigcn:
+    architecture:
+      hidden_dim: 512
+      dropout: 0
+      n_neighbors: 2
+    training:
+      epochs: 10000
+      lr: 0.0001
+      wd: 0.0001
+      alpha: 1.0
+      loss_beta: 1.0
+      patience: 100
+
+  icis:
+    classifier_epochs: 100
+    classifier_lr: 0.0001
+    epochs: 1000
+    lr: 0.0001
+    batch_size: 16
+    embed_dim: 1000
+    num_layers: 3
+    wn_factor: 10.0
+    cos_sim_loss: false
+    patience: 50
+
+  baseline:
+    enhanced_dim: 256
+    epochs_phase1: 200
+    lr_phase1: 0.01
+    joint_dim: 512
+    epochs_phase2: 150
+    lr_phase2: 0.0001
+    lambda_align: 0.3
+    temperature: 0.1
+    max_iterations: 20
+
+  zerog:
+    source: [Cora, Citeseer, Pubmed, Arxiv]
+    target: [Cora, Citeseer, Pubmed]
+    epochs: 50
+    lr: 0.0001
+    k: 2
+    R: 10
+    batch_size: 2
+    grad_accum: 4

@@ -1,0 +1,37 @@
+# Transductive Baseline Configuration (thesis Chapter 7)
+
+data_root: ./data
+
+model:
+  name: transductive_baseline
+  enhanced_dim: 256          # GraphSAGE output dim
+  joint_dim: 512             # Joint embedding space dim
+
+training:
+  # Phase 1: GraphSAGE
+  epochs_phase1: 200
+  lr_phase1: 0.01
+
+  # Phase 2: Dual projectors (thesis Eq. 7.15-7.17)
+  epochs_phase2: 150
+  lr_phase2: 0.0001
+  lambda_align: 0.3          # alignment loss weight
+  temperature: 0.1           # NCE temperature
+  batch_size: 512
+
+  # Phase 3: Constrained clustering
+  max_iterations: 20         # or convergence < 0.001
+
+seeds: [0, 1, 2, 3, 4]
+
+datasets:
+  - cora
+  - citeseer
+  - c-m10-m
+  - ogbn-arxiv
+  - pubmed
+  - wikics
+  - amazon-computers
+  - amazon-photo
+  - coauthor-cs
+  - coauthor-physics

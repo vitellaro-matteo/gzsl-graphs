@@ -1,0 +1,34 @@
+# ICIS Configuration (adapted for graph data)
+# Christensen et al., ICCV 2023
+
+data_root: ./data
+
+model:
+  name: icis
+  embed_dim: 1000           # latent space dimension
+  num_layers: 3             # autoencoder depth (2, 3, or 4)
+  cos_sim_loss: false       # use cosine similarity loss
+  wn_factor: 10.0           # weight normalization for unseen classes
+
+training:
+  epochs: 1000
+  lr: 0.0001
+  batch_size: 16
+  patience: 50              # early stopping (epochs without H improvement)
+
+  # Base classifier (Phase 1)
+  classifier_epochs: 100
+  classifier_lr: 0.0001
+  classifier_hidden: 256
+
+datasets:
+  - cora
+  - citeseer
+  - c-m10-m
+  - ogbn-arxiv
+  - pubmed
+  - wikics
+  - amazon-computers
+  - amazon-photo
+  - coauthor-cs
+  - coauthor-physics

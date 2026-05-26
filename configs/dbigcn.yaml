@@ -1,0 +1,35 @@
+# DBiGCN Configuration
+# Yue et al., KDD 2022
+
+data_root: ./data
+
+model:
+  name: dbigcn
+  hidden_dim: 512
+  dropout: 0
+  n_neighbors: 2
+
+training:
+  epochs: 10000
+  lr: 0.0001
+  wd: 0.0001
+  alpha: 1.0
+  loss_beta: 1.0
+  patience: 100
+
+evaluation:
+  settings:
+    - zsl
+    - gzsl
+
+datasets:
+  - cora
+  - citeseer
+  - c-m10-m
+  - ogbn-arxiv
+  - pubmed
+  - wikics
+  - amazon-computers
+  - amazon-photo
+  - coauthor-cs
+  - coauthor-physics

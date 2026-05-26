@@ -1,0 +1,33 @@
+# DGPN Configuration for Graph GZSL Experiments
+# Reference: Wang et al., KDD 2021
+
+data_root: ./data
+
+model:
+  name: dgpn
+  K: 3
+  beta: 0.7
+  dropout: 0.5
+
+training:
+  epochs: 10000
+  lr: 0.001
+  alpha: 1.0
+  patience: 100
+
+evaluation:
+  settings:
+    - zsl
+    - gzsl
+
+datasets:
+  - cora
+  - citeseer
+  - c-m10-m
+  - ogbn-arxiv
+  - pubmed
+  - wikics
+  - amazon-computers
+  - amazon-photo
+  - coauthor-cs
+  - coauthor-physics
