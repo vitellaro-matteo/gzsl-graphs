@@ -45,9 +45,15 @@ import yaml
 # ============================================================
 
 ALL_DATASETS = [
+    # Original
     "cora", "citeseer", "c-m10-m", "ogbn-arxiv",
+    # PyG standard
     "pubmed", "wikics", "amazon-computers", "amazon-photo",
     "coauthor-cs", "coauthor-physics",
+    # Extended benchmarks
+    "cora-full", "ogbn-products",
+    "reddit", "roman-empire", "flickr", "lastfm-asia",
+    "actor", "chameleon", "squirrel", "amazon-ratings",
 ]
 
 # Models that use scripts/train.py (shared training loop)

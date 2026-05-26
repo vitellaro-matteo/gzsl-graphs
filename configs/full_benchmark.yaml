@@ -4,11 +4,11 @@
 #   python scripts/run_experiments.py --config configs/full_benchmark.yaml
 #   python scripts/run_experiments.py --config configs/full_benchmark.yaml --models dgpn --datasets cora
 #
-# This runs all 5 models on all 10 datasets with 5 seeds each.
-# Total experiments: 4 models x 10 datasets x 5 seeds = 200 runs (+ ZeroG).
+# This runs all 5 models on all 20 datasets with 5 seeds each.
+# Total experiments: 4 models x 20 datasets x 5 seeds = 400 runs (+ ZeroG).
 #
-# Estimated time: ~24h on a single GPU (heavily dataset-dependent;
-# ogbn-arxiv and coauthor-cs/physics are much slower than cora/citeseer).
+# Recommended: run on Meluxina HPC using scripts/slurm/submit_benchmark.sh
+# which submits one SLURM job per model so all 5 models run in parallel.
 
 data_root: ./data
 
@@ -21,16 +21,29 @@ models_to_run:
   - zerog
 
 datasets:
+  # --- Original (4) ---
   - cora
   - citeseer
   - c-m10-m
   - ogbn-arxiv
+  # --- PyG standard (6) ---
   - pubmed
   - wikics
   - amazon-computers
   - amazon-photo
   - coauthor-cs
   - coauthor-physics
+  # --- Extended benchmarks (10) ---
+  - cora-full
+  - ogbn-products
+  - reddit
+  - roman-empire
+  - flickr
+  - lastfm-asia
+  - actor
+  - chameleon
+  - squirrel
+  - amazon-ratings
 
 seeds: [0, 1, 2, 3, 4]
 

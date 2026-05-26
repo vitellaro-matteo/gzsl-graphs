@@ -84,9 +84,15 @@ class GraphZSLDataset:
     """Unified dataset loader for all graph ZSL benchmarks."""
 
     SUPPORTED = [
+        # Original
         "cora", "citeseer", "c-m10-m", "ogbn-arxiv",
+        # PyG standard
         "pubmed", "wikics", "amazon-computers", "amazon-photo",
         "coauthor-cs", "coauthor-physics",
+        # Extended (added for large-scale benchmarking)
+        "cora-full", "ogbn-products",
+        "reddit", "roman-empire", "flickr", "lastfm-asia",
+        "actor", "chameleon", "squirrel", "amazon-ratings",
     ]
 
     def __init__(self, name, root="./data", split="class_split_2",
@@ -139,6 +145,17 @@ class GraphZSLDataset:
             "amazon-photo": self._load_amazon_photo,
             "coauthor-cs": self._load_coauthor_cs,
             "coauthor-physics": self._load_coauthor_physics,
+            # Extended datasets
+            "cora-full": self._load_cora_full,
+            "ogbn-products": self._load_ogbn_products,
+            "reddit": self._load_reddit,
+            "roman-empire": self._load_roman_empire,
+            "flickr": self._load_flickr,
+            "lastfm-asia": self._load_lastfm_asia,
+            "actor": self._load_actor,
+            "chameleon": self._load_chameleon,
+            "squirrel": self._load_squirrel,
+            "amazon-ratings": self._load_amazon_ratings,
         }
         return loaders[self.name]()
 
@@ -339,24 +356,192 @@ class GraphZSLDataset:
         print(f"  Coauthor Physics: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
         return x, edge_index, y, n_classes, class_names
 
+    # ---- Extended dataset loaders ----
+
+    def _load_cora_full(self):
+        """Load CoraFull (70-class fine-grained CS citation graph) via PyG."""
+        from torch_geometric.datasets import CoraFull
+        dataset = CoraFull(root=os.path.join(self.root, "CoraFull"))
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = self._load_cora_full_class_names(n_classes)
+        print(f"  CoraFull: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_cora_full_class_names(self, n_classes):
+        """Read CoraFull class names from the raw NPZ file when available."""
+        npz_path = os.path.join(self.root, "CoraFull", "raw", "cora.npz")
+        if os.path.exists(npz_path):
+            try:
+                import numpy as np
+                raw = np.load(npz_path, allow_pickle=True)
+                for key in ("class_names", "classes", "label_names"):
+                    if key in raw:
+                        names = list(raw[key])
+                        if len(names) == n_classes:
+                            return [str(n) for n in names]
+            except Exception:
+                pass
+        return [f"CS_Research_Area_{i}" for i in range(n_classes)]
+
+    def _load_ogbn_products(self):
+        """Load ogbn-products (47-class Amazon co-purchase graph) via OGB."""
+        from ogb.nodeproppred import NodePropPredDataset
+        os.environ["OGB_DATA_HOME"] = self.root
+        dataset = NodePropPredDataset(name="ogbn-products", root=self.root)
+        self._ogb_dataset = dataset
+        graph, labels = dataset[0]
+        x = torch.FloatTensor(graph["node_feat"])
+        edge_index = torch.LongTensor(graph["edge_index"])
+        y = torch.LongTensor(labels.squeeze())
+        n_classes = int(y.max().item()) + 1
+        assert n_classes == len(OGBN_PRODUCTS_CATEGORY_NAMES), (
+            f"ogbn-products: expected {len(OGBN_PRODUCTS_CATEGORY_NAMES)} classes, got {n_classes}"
+        )
+        print(f"  ogbn-products: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, list(OGBN_PRODUCTS_CATEGORY_NAMES)
+
+    def _load_reddit(self):
+        """Load Reddit2 (41-class subreddit community graph) via PyG."""
+        from torch_geometric.datasets import Reddit2
+        dataset = Reddit2(root=os.path.join(self.root, "Reddit2"))
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(REDDIT_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Reddit2: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Reddit2: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_roman_empire(self):
+        """Load Roman-empire (18-class grammatical-role graph) via PyG."""
+        from torch_geometric.datasets import HeterophilousGraphDataset
+        dataset = HeterophilousGraphDataset(
+            root=os.path.join(self.root, "HeterophilousGraphDataset"),
+            name="Roman-empire",
+        )
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(ROMAN_EMPIRE_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Roman-empire: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Roman-empire: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_flickr(self):
+        """Load Flickr (7-class image-category graph) via PyG."""
+        from torch_geometric.datasets import Flickr
+        dataset = Flickr(root=os.path.join(self.root, "Flickr"))
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(FLICKR_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Flickr: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Flickr: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_lastfm_asia(self):
+        """Load LastFMAsia (18-class Asian-country music graph) via PyG."""
+        from torch_geometric.datasets import LastFMAsia
+        dataset = LastFMAsia(root=os.path.join(self.root, "LastFMAsia"))
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(LASTFM_ASIA_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"LastFMAsia: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  LastFMAsia: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_actor(self):
+        """Load Actor (5-class film-actor co-occurrence graph) via PyG."""
+        from torch_geometric.datasets import Actor
+        dataset = Actor(root=os.path.join(self.root, "Actor"))
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(ACTOR_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Actor: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Actor: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_wikipedia_network(self, name):
+        """Shared loader for WikipediaNetwork datasets (chameleon/squirrel)."""
+        from torch_geometric.datasets import WikipediaNetwork
+        dataset = WikipediaNetwork(
+            root=os.path.join(self.root, "WikipediaNetwork"),
+            name=name,
+            geom_gcn_preprocess=True,
+        )
+        data = dataset[0]
+        x, edge_index = data.x, data.edge_index
+        # geom_gcn_preprocess gives y of shape [N, 10]; take first split column
+        y = data.y if data.y.dim() == 1 else data.y[:, 0]
+        n_classes = int(y.max().item()) + 1
+        return x, edge_index, y, n_classes
+
+    def _load_chameleon(self):
+        """Load Chameleon (5-class Wikipedia traffic graph) via PyG."""
+        x, edge_index, y, n_classes = self._load_wikipedia_network("chameleon")
+        class_names = list(WIKIPEDIA_TRAFFIC_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Chameleon: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Chameleon: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_squirrel(self):
+        """Load Squirrel (5-class Wikipedia traffic graph) via PyG."""
+        x, edge_index, y, n_classes = self._load_wikipedia_network("squirrel")
+        class_names = list(WIKIPEDIA_TRAFFIC_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Squirrel: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Squirrel: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
+    def _load_amazon_ratings(self):
+        """Load Amazon-ratings (5-class star-rating graph) via PyG."""
+        from torch_geometric.datasets import HeterophilousGraphDataset
+        dataset = HeterophilousGraphDataset(
+            root=os.path.join(self.root, "HeterophilousGraphDataset"),
+            name="Amazon-ratings",
+        )
+        data = dataset[0]
+        x, edge_index, y = data.x, data.edge_index, data.y
+        n_classes = int(y.max().item()) + 1
+        class_names = list(AMAZON_STAR_RATINGS_DESCRIPTIONS.keys())
+        assert n_classes == len(class_names), (
+            f"Amazon-ratings: expected {len(class_names)} classes, got {n_classes}"
+        )
+        print(f"  Amazon-ratings: {x.size(0)} nodes, {edge_index.size(1)} edges, {n_classes} classes")
+        return x, edge_index, y, n_classes, class_names
+
     # ---- Class splits ----
 
     def _get_split(self, n_classes):
         if self.custom_seen is not None and self.custom_unseen is not None:
             return sorted(self.custom_seen), sorted(self.custom_unseen), []
         split_def = get_class_split(self.name, self.split)
-        if self.name == "ogbn-arxiv":
+        if self.name in ("ogbn-arxiv", "ogbn-products"):
             return split_def["train"], split_def["unseen"], []
         return split_def["train"], split_def["test"], split_def.get("val", [])
 
     # ---- Node masks ----
 
     def _create_node_masks(self, y, seen, unseen, val_classes):
-        if self.name == "ogbn-arxiv":
+        if self.name in ("ogbn-arxiv", "ogbn-products"):
             return self._ogbn_masks(y, set(seen), set(unseen))
-        # PubMed loaded via Planetoid has built-in splits we could use,
-        # but for GZSL consistency we use the same class-based splitting
-        # as all other citation datasets.
         return self._citation_masks(y, set(seen), set(unseen), set(val_classes))
 
     def _ogbn_masks(self, y, seen_set, unseen_set):
@@ -422,8 +607,17 @@ class GraphZSLDataset:
             **PUBMED_DESCRIPTIONS, **WIKICS_DESCRIPTIONS,
             **AMAZON_COMPUTERS_DESCRIPTIONS, **AMAZON_PHOTO_DESCRIPTIONS,
             **COAUTHOR_CS_DESCRIPTIONS, **COAUTHOR_PHYSICS_DESCRIPTIONS,
+            # Extended datasets
+            **OGBN_PRODUCTS_DESCRIPTIONS,
+            **REDDIT_DESCRIPTIONS,
+            **ROMAN_EMPIRE_DESCRIPTIONS,
+            **FLICKR_DESCRIPTIONS,
+            **LASTFM_ASIA_DESCRIPTIONS,
+            **ACTOR_DESCRIPTIONS,
+            **WIKIPEDIA_TRAFFIC_DESCRIPTIONS,
+            **AMAZON_STAR_RATINGS_DESCRIPTIONS,
         }
-        return [all_descs.get(n, f"Research area: {n}") for n in class_names]
+        return [all_descs.get(n, f"Research topic: {n}") for n in class_names]
 
     # ---- Prototypes ----
 
@@ -808,5 +1002,637 @@ COAUTHOR_PHYSICS_DESCRIPTIONS = {
     "Nuclear Physics": (
         "Nuclear physics including nuclear structure, nuclear reactions, "
         "radioactivity, nuclear energy, and nuclear astrophysics"
+    ),
+}
+
+
+# ============================================================
+# Class Descriptions (extended datasets)
+# ============================================================
+
+# ogbn-products: 47 Amazon top-level product categories.
+# Order matches OGB's labelidx2productcategory mapping (Hu et al., 2020).
+OGBN_PRODUCTS_DESCRIPTIONS = {
+    "Home & Kitchen": (
+        "Home and kitchen products including furniture, cookware, small appliances, "
+        "bedding, and home-decor items for everyday household use"
+    ),
+    "Health & Personal Care": (
+        "Health and personal-care items including vitamins, supplements, first-aid "
+        "supplies, hygiene products, and wellness accessories"
+    ),
+    "Beauty": (
+        "Beauty and cosmetics products including makeup, skincare creams, hair-care "
+        "treatments, nail products, and personal fragrance"
+    ),
+    "Sports & Outdoors": (
+        "Sports equipment, fitness gear, outdoor recreation products, and athletic "
+        "apparel for active lifestyles and adventure activities"
+    ),
+    "Books": (
+        "Printed books and literature spanning fiction, non-fiction, academic "
+        "textbooks, children's books, and professional reference works"
+    ),
+    "Patio, Lawn & Garden": (
+        "Outdoor living products including patio furniture, grills, gardening tools, "
+        "lawn-care equipment, and plant-care supplies"
+    ),
+    "Toys & Games": (
+        "Toys, board games, puzzles, and recreational products for children and "
+        "adults including action figures and educational toys"
+    ),
+    "CDs & Vinyl": (
+        "Physical music media including audio CDs and vinyl records covering "
+        "classical, rock, pop, jazz, and other musical genres"
+    ),
+    "Cell Phones & Accessories": (
+        "Smartphones, mobile phones, and mobile accessories including cases, "
+        "chargers, screen protectors, and Bluetooth peripherals"
+    ),
+    "Grocery & Gourmet Food": (
+        "Grocery staples and gourmet food products including packaged foods, "
+        "beverages, snacks, spices, and specialty imported ingredients"
+    ),
+    "Arts, Crafts & Sewing": (
+        "Arts and crafts supplies including paints, drawing materials, sewing "
+        "thread, knitting yarn, and DIY project kits"
+    ),
+    "Clothing, Shoes & Jewelry": (
+        "Fashion apparel, footwear, and jewelry including shirts, dresses, "
+        "sneakers, boots, rings, necklaces, and fashion accessories"
+    ),
+    "Electronics": (
+        "Consumer electronics including televisions, audio equipment, home-theater "
+        "systems, cameras, and general-purpose electronic devices"
+    ),
+    "Movies & TV": (
+        "Physical movie and TV-show media including DVDs and Blu-ray discs "
+        "spanning action, drama, comedy, and documentary genres"
+    ),
+    "Software": (
+        "Computer software including productivity suites, security programs, "
+        "operating systems, creative applications, and educational software"
+    ),
+    "Video Games": (
+        "Video games for consoles and PC including action, role-playing, "
+        "sports, and strategy titles, plus gaming accessories"
+    ),
+    "Automotive": (
+        "Automotive parts, car accessories, vehicle-maintenance supplies, "
+        "and tools for cars, trucks, and motorcycles"
+    ),
+    "Pet Supplies": (
+        "Pet-care products including pet food, treats, grooming tools, "
+        "toys, and accessories for dogs, cats, birds, and other animals"
+    ),
+    "Office Products": (
+        "Office supplies and equipment including paper, pens, binders, "
+        "desk organizers, printers, and office furniture"
+    ),
+    "Industrial & Scientific": (
+        "Industrial equipment, laboratory instruments, safety gear, janitorial "
+        "supplies, and materials used in scientific and manufacturing settings"
+    ),
+    "Musical Instruments": (
+        "Musical instruments and accessories including guitars, keyboards, drums, "
+        "brass and woodwind instruments, and recording gear"
+    ),
+    "Tools & Home Improvement": (
+        "Hand tools, power tools, hardware, plumbing fixtures, electrical "
+        "supplies, and building materials for home renovation"
+    ),
+    "Magazine Subscriptions": (
+        "Subscriptions to printed magazines and periodicals covering news, "
+        "lifestyle, science, technology, and entertainment topics"
+    ),
+    "Baby Products": (
+        "Baby and infant products including diapers, feeding supplies, "
+        "baby monitors, nursery furniture, and infant clothing"
+    ),
+    "Misc. Products": (
+        "Miscellaneous and general merchandise that spans multiple categories "
+        "or does not fit neatly into a single product classification"
+    ),
+    "GPS & Navigation": (
+        "GPS devices and navigation systems for vehicles, hiking, and marine use, "
+        "plus digital map software and location services"
+    ),
+    "Digital Music": (
+        "Digital music downloads and streaming credits covering all musical genres "
+        "from classical and jazz to electronic and hip-hop"
+    ),
+    "Camera & Photo": (
+        "Cameras, lenses, tripods, flashes, memory cards, and other photography "
+        "equipment for amateur and professional photography"
+    ),
+    "All Electronics": (
+        "Broad electronics category encompassing televisions, audio, smart-home "
+        "devices, cables, batteries, and general electronic accessories"
+    ),
+    "Gift Cards": (
+        "Prepaid gift cards and e-gift cards for retail stores, restaurants, "
+        "online services, and entertainment platforms"
+    ),
+    "Amazon Instant Video": (
+        "Digital video content available for purchase or rental including blockbuster "
+        "movies, TV-show seasons, and Amazon Original productions"
+    ),
+    "Computers": (
+        "Desktop computers, laptops, tablets, monitors, and computer accessories "
+        "for personal, professional, and gaming use"
+    ),
+    "All Beauty": (
+        "Broad beauty category covering everyday cosmetics, drugstore skincare, "
+        "hair-color products, and bath and body essentials"
+    ),
+    "Luxury Beauty": (
+        "Premium and prestige beauty products including high-end skincare serums, "
+        "designer fragrances, luxury makeup, and professional haircare"
+    ),
+    "Amazon Fashion": (
+        "Clothing and fashion items curated by Amazon covering casual wear, "
+        "activewear, designer brands, and seasonal fashion trends"
+    ),
+    "Appliances": (
+        "Major and small home appliances including refrigerators, washing machines, "
+        "dishwashers, microwaves, and kitchen appliances"
+    ),
+    "Arts & Crafts": (
+        "Art-supply and craft-material products for painting, sculpting, "
+        "paper crafting, model-making, and creative DIY projects"
+    ),
+    "Kitchen & Dining": (
+        "Kitchen cookware, bakeware, kitchen gadgets, cutlery, dinnerware, "
+        "and food-storage products for home cooking and dining"
+    ),
+    "Everything Else": (
+        "Products from diverse, niche, or hard-to-classify segments that "
+        "do not belong to a standard Amazon product category"
+    ),
+    "Handmade Products": (
+        "Handcrafted and artisan items including handmade jewelry, pottery, "
+        "woven textiles, and custom home-decor made by individual sellers"
+    ),
+    "Home Improvement": (
+        "Home-renovation and improvement materials including flooring, paint, "
+        "doors, windows, plumbing, and electrical fixtures"
+    ),
+    "Home & Business Services": (
+        "Service offerings and service-related products for home maintenance, "
+        "cleaning, landscaping, and small-business operations"
+    ),
+    "Grocery": (
+        "Everyday grocery items including fresh produce, canned goods, dairy, "
+        "bread, beverages, and pantry essentials for household meals"
+    ),
+    "Kindle Store": (
+        "Digital books, e-books, Kindle Singles, magazines, and newspapers "
+        "available for Kindle devices and the Kindle reading app"
+    ),
+    "Shoes": (
+        "Footwear for men, women, and children including athletic sneakers, "
+        "dress shoes, sandals, boots, and specialty footwear"
+    ),
+    "Jewelry": (
+        "Fine and fashion jewelry including rings, necklaces, earrings, bracelets, "
+        "watches, and gemstone accessories for all occasions"
+    ),
+    "All Departments": (
+        "Catch-all category for products spanning all Amazon departments, "
+        "including general merchandise and multi-category bundles"
+    ),
+}
+OGBN_PRODUCTS_CATEGORY_NAMES = list(OGBN_PRODUCTS_DESCRIPTIONS.keys())
+
+# Reddit2: 41 subreddit community classes.
+# NOTE: The index-to-subreddit mapping in the Reddit2 dataset is not officially
+# documented in PyG. These descriptions are ordered to approximate the label
+# assignment from the original GraphSAGE preprocessing (Hamilton et al., 2017),
+# where subreddits are sorted alphabetically. For best ZSL performance, verify
+# the exact mapping by inspecting dataset.data.y after loading.
+REDDIT_DESCRIPTIONS = {
+    "worldnews": (
+        "International news and global current events from around the world, "
+        "covering geopolitics, international conflicts, and diplomatic affairs"
+    ),
+    "politics": (
+        "Political discussion, government policy, elections, and civic issues "
+        "primarily focused on United States and global political systems"
+    ),
+    "science": (
+        "Scientific research, discoveries, and academic findings across "
+        "physics, biology, chemistry, medicine, and other scientific fields"
+    ),
+    "technology": (
+        "Technology news, consumer gadgets, software development, artificial "
+        "intelligence, and digital innovation trends"
+    ),
+    "gaming": (
+        "Video game culture, game reviews, news about upcoming releases, "
+        "gaming hardware, and online gaming communities"
+    ),
+    "movies": (
+        "Film discussion, movie reviews, box-office analysis, cinema culture, "
+        "and coverage of upcoming film releases and industry news"
+    ),
+    "music": (
+        "Music discussion including album reviews, artist news, concert "
+        "experiences, genre exploration, and musical recommendations"
+    ),
+    "sports": (
+        "General sports discussion covering athletic achievements, game results, "
+        "team news, and broader sports culture"
+    ),
+    "AskReddit": (
+        "Open-ended community questions and crowd-sourced answers covering "
+        "diverse personal, hypothetical, and social topics"
+    ),
+    "funny": (
+        "Humor, memes, comedy content, amusing images and videos, "
+        "and lighthearted entertainment for laughs"
+    ),
+    "todayilearned": (
+        "Interesting facts, surprising trivia, and educational tidbits "
+        "that community members learned and want to share"
+    ),
+    "IAmA": (
+        "Ask-Me-Anything sessions with people from diverse backgrounds "
+        "including celebrities, professionals, and everyday individuals"
+    ),
+    "nfl": (
+        "National Football League discussion including game analysis, "
+        "player performance, team news, and NFL draft coverage"
+    ),
+    "nba": (
+        "National Basketball Association discussion covering game recaps, "
+        "player statistics, trade rumors, and team standings"
+    ),
+    "soccer": (
+        "Association football discussion including match analysis, transfer "
+        "news, league tables, and international tournament coverage"
+    ),
+    "programming": (
+        "Software programming discussion covering coding best practices, "
+        "languages, frameworks, debugging, and career advice"
+    ),
+    "history": (
+        "Historical events, academic analysis of the past, historical education, "
+        "and the study of human civilizations and cultures"
+    ),
+    "books": (
+        "Book recommendations, literary criticism, author discussions, "
+        "reading challenges, and publishing industry news"
+    ),
+    "news": (
+        "Breaking news and current events journalism covering domestic and "
+        "international stories across all major topics"
+    ),
+    "LifeProTips": (
+        "Practical advice and actionable tips for improving productivity, "
+        "daily routines, social skills, and quality of life"
+    ),
+    "explainlikeimfive": (
+        "Simplified, accessible explanations of complex scientific, economic, "
+        "political, and philosophical concepts for general audiences"
+    ),
+    "personalfinance": (
+        "Personal financial planning including budgeting strategies, "
+        "investment advice, debt management, and retirement planning"
+    ),
+    "environment": (
+        "Environmental issues including climate change, conservation efforts, "
+        "renewable energy, pollution, and sustainable living practices"
+    ),
+    "philosophy": (
+        "Philosophical ideas, ethical debates, metaphysics, logic, epistemology, "
+        "and the exploration of abstract conceptual questions"
+    ),
+    "relationships": (
+        "Interpersonal relationship advice covering romantic partnerships, "
+        "friendships, family dynamics, and social connection challenges"
+    ),
+    "food": (
+        "Culinary culture including recipe sharing, restaurant reviews, "
+        "cooking techniques, food photography, and gastronomic exploration"
+    ),
+    "travel": (
+        "Travel experiences, destination recommendations, trip planning, "
+        "cultural tourism, backpacking, and travel photography"
+    ),
+    "fitness": (
+        "Physical fitness including workout routines, strength training, "
+        "running, nutrition guidance, and athletic performance improvement"
+    ),
+    "dataisbeautiful": (
+        "Data visualization, statistical analysis, infographics, and "
+        "creative representation of quantitative information"
+    ),
+    "learnprogramming": (
+        "Programming education, coding tutorials, beginner-friendly resources, "
+        "and guidance for aspiring software developers"
+    ),
+    "math": (
+        "Mathematics discussion spanning problem solving, proof techniques, "
+        "calculus, linear algebra, statistics, and recreational math"
+    ),
+    "physics": (
+        "Physics concepts, theoretical and experimental research, quantum "
+        "mechanics, relativity, and the fundamental laws of nature"
+    ),
+    "biology": (
+        "Life sciences including evolution, genetics, cell biology, ecology, "
+        "microbiology, and medical and neuroscience research"
+    ),
+    "chemistry": (
+        "Chemistry discussion covering organic and inorganic chemistry, "
+        "chemical reactions, materials science, and laboratory techniques"
+    ),
+    "psychology": (
+        "Psychological research, mental health awareness, cognitive science, "
+        "behavioral studies, and therapy-related discussions"
+    ),
+    "economics": (
+        "Economic theory, macroeconomic policy, market analysis, behavioral "
+        "economics, and discussion of global financial systems"
+    ),
+    "writing": (
+        "Creative writing, fiction-craft discussions, screenwriting, "
+        "poetry, grammar, and storytelling technique workshops"
+    ),
+    "photography": (
+        "Photography techniques, camera and lens reviews, post-processing "
+        "workflows, composition theory, and photo critique"
+    ),
+    "cooking": (
+        "Home cooking, recipe development, baking, kitchen tools, "
+        "meal planning, and the science behind culinary techniques"
+    ),
+    "art": (
+        "Visual arts including painting, drawing, sculpture, digital art, "
+        "art history, museum culture, and creative expression"
+    ),
+}
+
+# Roman-empire: 18 classes representing Universal Dependencies POS tags.
+# From Platonov et al. (2023): nodes are words in the Roman Empire Wikipedia
+# article; classes are their grammatical (part-of-speech) roles.
+ROMAN_EMPIRE_DESCRIPTIONS = {
+    "NOUN": (
+        "Common nouns denoting people, places, things, and abstract concepts "
+        "that form the core subjects and objects of sentences"
+    ),
+    "VERB": (
+        "Main verbs expressing actions, states, or occurrences that form "
+        "the predicate of a clause"
+    ),
+    "PUNCT": (
+        "Punctuation marks including periods, commas, semicolons, colons, "
+        "and other syntactic delimiters"
+    ),
+    "DET": (
+        "Determiners including definite and indefinite articles, demonstratives, "
+        "possessives, and quantifiers that introduce noun phrases"
+    ),
+    "ADP": (
+        "Adpositions — prepositions and postpositions — expressing spatial, "
+        "temporal, and logical relations between constituents"
+    ),
+    "ADJ": (
+        "Adjectives that modify nouns by expressing properties, qualities, "
+        "sizes, colors, or other descriptive attributes"
+    ),
+    "PRON": (
+        "Pronouns that substitute for or refer back to noun phrases, "
+        "including personal, relative, reflexive, and interrogative pronouns"
+    ),
+    "ADV": (
+        "Adverbs modifying verbs, adjectives, or other adverbs to express "
+        "manner, degree, frequency, time, or place"
+    ),
+    "PROPN": (
+        "Proper nouns naming specific individual entities such as persons, "
+        "places, organizations, dates, and events"
+    ),
+    "AUX": (
+        "Auxiliary verbs supporting the main verb to encode tense, aspect, "
+        "mood, voice, and modality"
+    ),
+    "CCONJ": (
+        "Coordinating conjunctions linking words, phrases, or clauses of equal "
+        "grammatical rank, such as 'and', 'but', and 'or'"
+    ),
+    "NUM": (
+        "Numerals representing cardinal or ordinal number expressions, "
+        "whether written as words or digits"
+    ),
+    "PART": (
+        "Particles — grammatical function words encoding negation, verbal "
+        "aspect, or other morphosyntactic features"
+    ),
+    "SCONJ": (
+        "Subordinating conjunctions introducing dependent clauses and encoding "
+        "causal, conditional, temporal, or concessive relations"
+    ),
+    "X": (
+        "Residual category for tokens that cannot be assigned a standard "
+        "part-of-speech tag, including foreign words and typos"
+    ),
+    "INTJ": (
+        "Interjections expressing emotions, reactions, or discourse-level "
+        "cues that stand outside the syntactic structure of the sentence"
+    ),
+    "SYM": (
+        "Symbols including mathematical operators, currency signs, percentage "
+        "marks, and other non-alphabetic functional characters"
+    ),
+    "SPACE": (
+        "Whitespace and spacing tokens produced during tokenization that "
+        "serve as delimiters between other textual units"
+    ),
+}
+
+# Flickr: 7 image-category classes.
+# Nodes are Flickr images; edges connect images sharing common metadata.
+# Task: classify each image into one of 7 thematic categories.
+FLICKR_DESCRIPTIONS = {
+    "People and Portraits": (
+        "Photographs featuring people, portraits, and human subjects in "
+        "posed or candid settings ranging from street photography to studio portraits"
+    ),
+    "Urban and Architecture": (
+        "Images of city skylines, street scenes, interior and exterior "
+        "architecture, bridges, and man-made structures"
+    ),
+    "Nature and Landscape": (
+        "Scenic nature photography including forests, mountains, rivers, "
+        "deserts, coastlines, and panoramic outdoor landscapes"
+    ),
+    "Animals and Wildlife": (
+        "Photography of wild animals, domestic pets, birds, insects, "
+        "and other living creatures in natural or captive environments"
+    ),
+    "Travel and Tourism": (
+        "Travel photography capturing iconic global destinations, cultural "
+        "experiences, tourist landmarks, and journey documentation"
+    ),
+    "Events and Celebrations": (
+        "Photography at events including concerts, weddings, festivals, "
+        "sports events, parties, and public gatherings"
+    ),
+    "Abstract and Art": (
+        "Abstract photography, macro photography, long-exposure experiments, "
+        "and intentionally artistic or conceptual visual compositions"
+    ),
+}
+
+# LastFMAsia: 18 classes representing the home country of LastFM users
+# from Asian nations. From Rozemberczki & Sarkar (2020).
+LASTFM_ASIA_DESCRIPTIONS = {
+    "Japan": (
+        "Music listeners from Japan whose preferences reflect J-pop, "
+        "anime soundtracks, visual kei, enka, and contemporary Japanese artists"
+    ),
+    "South Korea": (
+        "Music listeners from South Korea reflecting K-pop, K-hip-hop, "
+        "K-indie, and the globally influential Korean music industry"
+    ),
+    "China": (
+        "Music listeners from China whose tastes span Mandopop, Chinese "
+        "folk music, C-pop, and a growing indie and electronic scene"
+    ),
+    "India": (
+        "Music listeners from India reflecting Bollywood film music, "
+        "classical Hindustani and Carnatic traditions, and Indipop"
+    ),
+    "Thailand": (
+        "Music listeners from Thailand reflecting Thai pop (T-pop), "
+        "luk thung folk music, and Southeast Asian fusion styles"
+    ),
+    "Indonesia": (
+        "Music listeners from Indonesia reflecting Indonesian pop, "
+        "dangdut, gamelan, and the diverse regional musical traditions"
+    ),
+    "Malaysia": (
+        "Music listeners from Malaysia reflecting Malay pop, Chinese-Malaysian "
+        "music, Tamil music, and multicultural Malaysian soundscapes"
+    ),
+    "Vietnam": (
+        "Music listeners from Vietnam reflecting V-pop, traditional nhac "
+        "dan toc folk music, bolero, and modern Vietnamese artists"
+    ),
+    "Philippines": (
+        "Music listeners from the Philippines whose preferences reflect "
+        "OPM (Original Pilipino Music), P-pop, and Filipino acoustic traditions"
+    ),
+    "Singapore": (
+        "Music listeners from Singapore reflecting the city-state's "
+        "cosmopolitan mix of English pop, Chinese pop, Malay, and Tamil music"
+    ),
+    "Taiwan": (
+        "Music listeners from Taiwan reflecting Taiwanese Mandopop, "
+        "Hokkien folk music, and a thriving indie and alternative scene"
+    ),
+    "Hong Kong": (
+        "Music listeners from Hong Kong reflecting Cantopop, Hong Kong cinema "
+        "soundtracks, and the Cantonese popular-music tradition"
+    ),
+    "Bangladesh": (
+        "Music listeners from Bangladesh reflecting Baul folk traditions, "
+        "Rabindra Sangeet, Bengali pop, and modern Bangladeshi music"
+    ),
+    "Pakistan": (
+        "Music listeners from Pakistan reflecting Urdu pop, Qawwali Sufi "
+        "devotional music, ghazal, and Coke Studio fusion performances"
+    ),
+    "Sri Lanka": (
+        "Music listeners from Sri Lanka reflecting Sinhala pop, baila "
+        "rhythm-and-dance music, and modern Sri Lankan artists"
+    ),
+    "Nepal": (
+        "Music listeners from Nepal reflecting Nepali folk and lok dohori "
+        "music, devotional bhajans, and contemporary Nepali pop"
+    ),
+    "Myanmar": (
+        "Music listeners from Myanmar reflecting Burmese classical music, "
+        "anyein performance art, and contemporary Myanmar pop artists"
+    ),
+    "Kazakhstan": (
+        "Music listeners from Kazakhstan reflecting Kazakh traditional dombyra "
+        "music, Central Asian folk traditions, and modern Kazakh pop"
+    ),
+}
+
+# Actor: 5 classes of film-industry actors grouped by their genre associations.
+# From Pei et al. (2020) Geom-GCN: nodes are actors sharing a Wikipedia page.
+ACTOR_DESCRIPTIONS = {
+    "Action and Adventure Actors": (
+        "Actors who predominantly appear in action films and adventure movies, "
+        "often performing physically demanding stunts and high-intensity roles"
+    ),
+    "Drama and Independent Film Actors": (
+        "Actors primarily working in dramatic and independent cinema, "
+        "specializing in character-driven narratives and emotional performances"
+    ),
+    "Comedy and Light Entertainment Actors": (
+        "Actors specializing in comedic roles, romantic comedies, sketch comedy, "
+        "and light family-entertainment productions"
+    ),
+    "Horror and Thriller Actors": (
+        "Actors frequently cast in horror films, psychological thrillers, "
+        "and suspense-driven productions requiring intense, dark performances"
+    ),
+    "Supporting and Character Actors": (
+        "Versatile character actors who take supporting roles across a wide "
+        "range of film and television genres rather than lead roles"
+    ),
+}
+
+# Chameleon and Squirrel (WikipediaNetwork): 5 classes representing monthly
+# page-traffic buckets for Wikipedia articles. From Rozemberczki et al. (2019).
+WIKIPEDIA_TRAFFIC_DESCRIPTIONS = {
+    "Very Low Traffic": (
+        "Wikipedia articles receiving very few monthly page views (under 1,000), "
+        "typically covering niche, obscure, or highly specialized topics"
+    ),
+    "Low Traffic": (
+        "Wikipedia articles with low monthly page views (roughly 1,000–10,000), "
+        "covering moderately known subjects with limited general interest"
+    ),
+    "Medium Traffic": (
+        "Wikipedia articles with moderate monthly page views (roughly 10,000–50,000), "
+        "covering topics of broad regional or subject-specific interest"
+    ),
+    "High Traffic": (
+        "Wikipedia articles with high monthly page views (roughly 50,000–200,000), "
+        "covering widely known subjects that attract substantial public interest"
+    ),
+    "Very High Traffic": (
+        "Wikipedia articles receiving very high monthly page views (over 200,000), "
+        "covering the most popular and broadly searched topics on Wikipedia"
+    ),
+}
+
+# Amazon-ratings: 5 classes representing discretized average star ratings.
+# From Platonov et al. (2023): nodes are Amazon products; classes are rating buckets.
+AMAZON_STAR_RATINGS_DESCRIPTIONS = {
+    "1-Star Rating": (
+        "Amazon products with 1-star average ratings indicating very poor "
+        "customer satisfaction, major defects, or significant buyer disappointment"
+    ),
+    "2-Star Rating": (
+        "Amazon products with 2-star average ratings indicating below-average "
+        "customer satisfaction with notable quality issues or unmet expectations"
+    ),
+    "3-Star Rating": (
+        "Amazon products with 3-star average ratings indicating average customer "
+        "satisfaction with mixed reviews, moderate quality, and balanced feedback"
+    ),
+    "4-Star Rating": (
+        "Amazon products with 4-star average ratings indicating good customer "
+        "satisfaction with positive reviews, reliable quality, and solid performance"
+    ),
+    "5-Star Rating": (
+        "Amazon products with 5-star average ratings indicating excellent customer "
+        "satisfaction, exceptional quality, and overwhelmingly positive reviews"
     ),
 }

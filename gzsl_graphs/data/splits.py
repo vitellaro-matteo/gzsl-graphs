@@ -149,6 +149,124 @@ CLASS_SPLITS = {
             "test": [3, 4],
         },
     },
+    # =========================================================================
+    # Extended datasets (added for large-scale benchmarking)
+    # =========================================================================
+    "cora-full": {
+        # CoraFull: 70 classes (fine-grained CS research sub-topics)
+        "class_split_1": {
+            "train": list(range(0, 50)),
+            "test": list(range(50, 70)),
+        },
+        "class_split_2": {
+            "train": list(range(0, 42)),
+            "val": list(range(42, 56)),
+            "test": list(range(56, 70)),
+        },
+    },
+    "ogbn-products": {
+        # ogbn-products: 47 Amazon product categories (OGB, uses its own node splits)
+        "class_split_2": {
+            "train": list(range(0, 33)),
+            "unseen": list(range(33, 47)),
+        },
+    },
+    "reddit": {
+        # Reddit2: 41 subreddit communities
+        "class_split_1": {
+            "train": list(range(0, 29)),
+            "test": list(range(29, 41)),
+        },
+        "class_split_2": {
+            "train": list(range(0, 23)),
+            "val": list(range(23, 31)),
+            "test": list(range(31, 41)),
+        },
+    },
+    "roman-empire": {
+        # Roman-empire: 18 grammatical/POS-tag classes
+        "class_split_1": {
+            "train": list(range(0, 12)),
+            "test": list(range(12, 18)),
+        },
+        "class_split_2": {
+            "train": list(range(0, 9)),
+            "val": list(range(9, 14)),
+            "test": list(range(14, 18)),
+        },
+    },
+    "flickr": {
+        # Flickr: 7 image category classes
+        "class_split_1": {
+            "train": [0, 1, 2, 3],
+            "test": [4, 5, 6],
+        },
+        "class_split_2": {
+            "train": [0, 1, 2],
+            "val": [3],
+            "test": [4, 5, 6],
+        },
+    },
+    "lastfm-asia": {
+        # LastFMAsia: 18 Asian country classes
+        "class_split_1": {
+            "train": list(range(0, 12)),
+            "test": list(range(12, 18)),
+        },
+        "class_split_2": {
+            "train": list(range(0, 9)),
+            "val": list(range(9, 14)),
+            "test": list(range(14, 18)),
+        },
+    },
+    "actor": {
+        # Actor: 5 film-actor type classes
+        "class_split_1": {
+            "train": [0, 1, 2],
+            "test": [3, 4],
+        },
+        "class_split_2": {
+            "train": [0, 1],
+            "val": [2],
+            "test": [3, 4],
+        },
+    },
+    "chameleon": {
+        # Chameleon (WikipediaNetwork): 5 monthly-traffic-level classes
+        "class_split_1": {
+            "train": [0, 1, 2],
+            "test": [3, 4],
+        },
+        "class_split_2": {
+            "train": [0, 1],
+            "val": [2],
+            "test": [3, 4],
+        },
+    },
+    "squirrel": {
+        # Squirrel (WikipediaNetwork): 5 monthly-traffic-level classes
+        "class_split_1": {
+            "train": [0, 1, 2],
+            "test": [3, 4],
+        },
+        "class_split_2": {
+            "train": [0, 1],
+            "val": [2],
+            "test": [3, 4],
+        },
+    },
+    "amazon-ratings": {
+        # Amazon-ratings: 5 star-rating classes (1 to 5 stars)
+        "class_split_1": {
+            "train": [0, 1, 2],
+            "test": [3, 4],
+        },
+        "class_split_2": {
+            "train": [0, 1],
+            "val": [2],
+            "test": [3, 4],
+        },
+    },
 }
 
 
@@ -156,9 +274,13 @@ def get_class_split(dataset_name: str, split: str = "class_split_2") -> Dict[str
     """Get the fixed class split for a dataset.
 
     Args:
-        dataset_name: One of 'cora', 'citeseer', 'c-m10-m', 'ogbn-arxiv',
-                      'pubmed', 'wikics', 'amazon-computers', 'amazon-photo',
-                      'coauthor-cs', 'coauthor-physics'
+        dataset_name: One of the 20 supported datasets — original:
+                      'cora', 'citeseer', 'c-m10-m', 'ogbn-arxiv';
+                      extended (PyG): 'pubmed', 'wikics', 'amazon-computers',
+                      'amazon-photo', 'coauthor-cs', 'coauthor-physics',
+                      'cora-full', 'reddit', 'roman-empire', 'flickr',
+                      'lastfm-asia', 'actor', 'chameleon', 'squirrel',
+                      'amazon-ratings'; OGB: 'ogbn-products'
         split: 'class_split_1' or 'class_split_2'
 
     Returns:

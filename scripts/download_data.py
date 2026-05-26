@@ -198,24 +198,176 @@ def download_coauthor_physics(root, repo_id):
 
 
 # ============================================================
+# Extended datasets (added for large-scale benchmarking)
+# ============================================================
+
+def download_cora_full(root, repo_id):
+    """CoraFull 70-class citation graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "CoraFull" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  CoraFull already present, skipping."); return
+    from torch_geometric.datasets import CoraFull
+    print("  Downloading CoraFull via PyG...")
+    CoraFull(root=os.path.join(root, "CoraFull"))
+    print(f"  CoraFull ready at {root}/CoraFull/")
+
+
+def download_ogbn_products(root, repo_id):
+    """ogbn-products 47-class Amazon co-purchase graph via OGB."""
+    try:
+        from ogb.nodeproppred import NodePropPredDataset
+    except ImportError:
+        print("  OGB not installed. Run: pip install ogb"); return
+    d = Path(root); d.mkdir(parents=True, exist_ok=True)
+    # ogbn-products is ~8 GB; skip if already present
+    existing = list((d / "ogbn_products").rglob("*.npz")) + list((d / "ogbn_products").rglob("*.csv.gz"))
+    if existing:
+        print("  ogbn-products already present, skipping."); return
+    print("  Downloading ogbn-products via OGB (~8 GB, may take a while)...")
+    os.environ["OGB_DATA_HOME"] = str(d)
+    NodePropPredDataset(name="ogbn-products", root=str(d))
+    print(f"  ogbn-products ready at {d}")
+
+
+def download_reddit(root, repo_id):
+    """Reddit2 41-class subreddit graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "Reddit2" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Reddit2 already present, skipping."); return
+    from torch_geometric.datasets import Reddit2
+    print("  Downloading Reddit2 via PyG (~1 GB)...")
+    Reddit2(root=os.path.join(root, "Reddit2"))
+    print(f"  Reddit2 ready at {root}/Reddit2/")
+
+
+def download_roman_empire(root, repo_id):
+    """Roman-empire heterophilous graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "HeterophilousGraphDataset" / "Roman-empire" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Roman-empire already present, skipping."); return
+    from torch_geometric.datasets import HeterophilousGraphDataset
+    print("  Downloading Roman-empire via PyG...")
+    HeterophilousGraphDataset(root=os.path.join(root, "HeterophilousGraphDataset"), name="Roman-empire")
+    print(f"  Roman-empire ready at {root}/HeterophilousGraphDataset/")
+
+
+def download_flickr(root, repo_id):
+    """Flickr image-graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "Flickr" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Flickr already present, skipping."); return
+    from torch_geometric.datasets import Flickr
+    print("  Downloading Flickr via PyG (~300 MB)...")
+    Flickr(root=os.path.join(root, "Flickr"))
+    print(f"  Flickr ready at {root}/Flickr/")
+
+
+def download_lastfm_asia(root, repo_id):
+    """LastFMAsia social graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "LastFMAsia" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  LastFMAsia already present, skipping."); return
+    from torch_geometric.datasets import LastFMAsia
+    print("  Downloading LastFMAsia via PyG...")
+    LastFMAsia(root=os.path.join(root, "LastFMAsia"))
+    print(f"  LastFMAsia ready at {root}/LastFMAsia/")
+
+
+def download_actor(root, repo_id):
+    """Actor film co-occurrence graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "Actor" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Actor already present, skipping."); return
+    from torch_geometric.datasets import Actor
+    print("  Downloading Actor via PyG...")
+    Actor(root=os.path.join(root, "Actor"))
+    print(f"  Actor ready at {root}/Actor/")
+
+
+def download_chameleon(root, repo_id):
+    """Chameleon Wikipedia network via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "WikipediaNetwork" / "chameleon" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Chameleon already present, skipping."); return
+    from torch_geometric.datasets import WikipediaNetwork
+    print("  Downloading Chameleon via PyG...")
+    WikipediaNetwork(root=os.path.join(root, "WikipediaNetwork"), name="chameleon",
+                     geom_gcn_preprocess=True)
+    print(f"  Chameleon ready at {root}/WikipediaNetwork/")
+
+
+def download_squirrel(root, repo_id):
+    """Squirrel Wikipedia network via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "WikipediaNetwork" / "squirrel" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Squirrel already present, skipping."); return
+    from torch_geometric.datasets import WikipediaNetwork
+    print("  Downloading Squirrel via PyG...")
+    WikipediaNetwork(root=os.path.join(root, "WikipediaNetwork"), name="squirrel",
+                     geom_gcn_preprocess=True)
+    print(f"  Squirrel ready at {root}/WikipediaNetwork/")
+
+
+def download_amazon_ratings(root, repo_id):
+    """Amazon-ratings heterophilous graph via PyG."""
+    if not _check_pyg_installed():
+        return
+    target = Path(root) / "HeterophilousGraphDataset" / "Amazon-ratings" / "processed"
+    if target.exists() and list(target.glob("*.pt")):
+        print("  Amazon-ratings already present, skipping."); return
+    from torch_geometric.datasets import HeterophilousGraphDataset
+    print("  Downloading Amazon-ratings via PyG...")
+    HeterophilousGraphDataset(root=os.path.join(root, "HeterophilousGraphDataset"),
+                              name="Amazon-ratings")
+    print(f"  Amazon-ratings ready at {root}/HeterophilousGraphDataset/")
+
+
+# ============================================================
 # Registry
 # ============================================================
 
 ALL = {
-    # HF-hosted
+    # HF-hosted (custom formats)
     "cora": download_cora,
     "citeseer": download_citeseer,
     "c-m10-m": download_cm10m,
     "zerog": download_zerog,
     # OGB-hosted
     "ogbn-arxiv": download_ogbn_arxiv,
-    # PyG-hosted
+    "ogbn-products": download_ogbn_products,
+    # PyG standard
     "pubmed": download_pubmed,
     "wikics": download_wikics,
     "amazon-computers": download_amazon_computers,
     "amazon-photo": download_amazon_photo,
     "coauthor-cs": download_coauthor_cs,
     "coauthor-physics": download_coauthor_physics,
+    # Extended benchmarks
+    "cora-full": download_cora_full,
+    "reddit": download_reddit,
+    "roman-empire": download_roman_empire,
+    "flickr": download_flickr,
+    "lastfm-asia": download_lastfm_asia,
+    "actor": download_actor,
+    "chameleon": download_chameleon,
+    "squirrel": download_squirrel,
+    "amazon-ratings": download_amazon_ratings,
 }
 
 
