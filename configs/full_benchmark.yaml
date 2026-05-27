@@ -1,110 +1,93 @@
-# Full benchmark configuration for Graph GZSL experiments.
-#
-# Usage:
-#   python scripts/run_experiments.py --config configs/full_benchmark.yaml
-#   python scripts/run_experiments.py --config configs/full_benchmark.yaml --models dgpn --datasets cora
-#
-# This runs all 5 models on all 20 datasets with 5 seeds each.
-# Total experiments: 4 models x 20 datasets x 5 seeds = 400 runs (+ ZeroG).
-#
-# Recommended: run on Meluxina HPC using scripts/slurm/submit_benchmark.sh
-# which submits one SLURM job per model so all 5 models run in parallel.
-
-data_root: ./data
-
-# Which models to run (comment out to skip)
-models_to_run:
-  - dgpn
-  - dbigcn
-  - icis
-  - baseline
-  - zerog
-
+data_root: /home/users/u103833/data
 datasets:
-  # --- Original (4) ---
-  - cora
-  - citeseer
-  - c-m10-m
-  - ogbn-arxiv
-  # --- PyG standard (6) ---
-  - pubmed
-  - wikics
-  - amazon-computers
-  - amazon-photo
-  - coauthor-cs
-  - coauthor-physics
-  # --- Extended benchmarks (10) ---
-  - cora-full
-  - ogbn-products
-  - reddit
-  - roman-empire
-  - flickr
-  - lastfm-asia
-  - actor
-  - chameleon
-  - squirrel
-  - amazon-ratings
-
-seeds: [0, 1, 2, 3, 4]
-
-# ============================================================
-# Per-model hyperparameters
-# ============================================================
-
+- cora
+- citeseer
+- c-m10-m
+- ogbn-arxiv
+- pubmed
+- wikics
+- amazon-computers
+- amazon-photo
+- coauthor-cs
+- coauthor-physics
+- cora-full
+- ogbn-products
+- reddit
+- roman-empire
+- flickr
+- actor
+- chameleon
+- squirrel
+- amazon-ratings
 models:
+  baseline:
+    enhanced_dim: 256
+    epochs_phase1: 200
+    epochs_phase2: 150
+    joint_dim: 512
+    lambda_align: 0.3
+    lr_phase1: 0.01
+    lr_phase2: 0.0001
+    max_iterations: 20
+    temperature: 0.1
+  dbigcn:
+    architecture:
+      dropout: 0
+      hidden_dim: 512
+      n_neighbors: 2
+    training:
+      alpha: 1.0
+      epochs: 10000
+      loss_beta: 1.0
+      lr: 0.0001
+      patience: 100
+      wd: 0.0001
   dgpn:
     architecture:
       K: 3
       beta: 0.7
       dropout: 0.5
     training:
+      alpha: 1.0
       epochs: 10000
       lr: 0.001
-      alpha: 1.0
       patience: 100
-
-  dbigcn:
-    architecture:
-      hidden_dim: 512
-      dropout: 0
-      n_neighbors: 2
-    training:
-      epochs: 10000
-      lr: 0.0001
-      wd: 0.0001
-      alpha: 1.0
-      loss_beta: 1.0
-      patience: 100
-
   icis:
+    batch_size: 16
     classifier_epochs: 100
     classifier_lr: 0.0001
+    cos_sim_loss: false
+    embed_dim: 1000
     epochs: 1000
     lr: 0.0001
-    batch_size: 16
-    embed_dim: 1000
     num_layers: 3
-    wn_factor: 10.0
-    cos_sim_loss: false
     patience: 50
-
-  baseline:
-    enhanced_dim: 256
-    epochs_phase1: 200
-    lr_phase1: 0.01
-    joint_dim: 512
-    epochs_phase2: 150
-    lr_phase2: 0.0001
-    lambda_align: 0.3
-    temperature: 0.1
-    max_iterations: 20
-
+    wn_factor: 10.0
   zerog:
-    source: [Cora, Citeseer, Pubmed, Arxiv]
-    target: [Cora, Citeseer, Pubmed]
-    epochs: 50
-    lr: 0.0001
-    k: 2
     R: 10
     batch_size: 2
+    epochs: 50
     grad_accum: 4
+    k: 2
+    lr: 0.0001
+    source:
+    - Cora
+    - Citeseer
+    - Pubmed
+    - Arxiv
+    target:
+    - Cora
+    - Citeseer
+    - Pubmed
+models_to_run:
+- dgpn
+- dbigcn
+- icis
+- baseline
+- zerog
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4

@@ -1,0 +1,21 @@
+# Ignore everything by default
+*
+# Allow folders
+!*/
+# Allow code and docs
+!*.py
+!*.sh
+!*.md
+!*.yml
+!*.ipynb
+!*.pt
+# Allow images/results
+!*.png
+!*.pdf
+!*.gitignore
+
+# Explicitly exclude the heavy weights and envs
+**/*.npz
+**/data/
+**/Y/
+**/.git/

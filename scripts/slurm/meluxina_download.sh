@@ -9,7 +9,7 @@
 #   sbatch scripts/slurm/meluxina_download.sh
 # ============================================================
 
-#SBATCH --account=YOUR_PROJECT_ACCOUNT     # <-- fill in your Meluxina project
+#SBATCH --account=p201211     # <-- fill in your Meluxina project
 #SBATCH --partition=cpu
 #SBATCH --qos=default
 #SBATCH --time=06:00:00
@@ -26,8 +26,7 @@ set -euo pipefail
 CONDA_ENV="gzsl-graphs"
 WORK_DIR="${SLURM_SUBMIT_DIR}"
 
-module load lang/Python/3.10.8-GCCcore-12.2.0
-source "$(conda info --base)/etc/profile.d/conda.sh"
+source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
 cd "${WORK_DIR}"
@@ -37,6 +36,6 @@ echo "Downloading all datasets to ./data ..."
 echo "Started: $(date)"
 
 # Downloads all datasets (skips those already present)
-python scripts/download_data.py --data_root ./data
+yes | python scripts/download_data.py --data_root /home/users/u103833/data
 
 echo "Finished: $(date)"

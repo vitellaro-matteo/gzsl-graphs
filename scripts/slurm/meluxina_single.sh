@@ -13,7 +13,7 @@
 # Or use submit_benchmark.sh to submit all 5 at once.
 # ============================================================
 
-#SBATCH --account=YOUR_PROJECT_ACCOUNT     # <-- fill in your Meluxina project
+#SBATCH --account=p201211     # <-- fill in your Meluxina project
 #SBATCH --partition=gpu
 #SBATCH --qos=default
 #SBATCH --time=48:00:00
@@ -33,8 +33,7 @@ set -euo pipefail
 CONDA_ENV="gzsl-graphs"
 WORK_DIR="${SLURM_SUBMIT_DIR}"        # directory where sbatch is called from
 
-module load lang/Python/3.10.8-GCCcore-12.2.0   # adjust module if needed
-source "$(conda info --base)/etc/profile.d/conda.sh"
+source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
 cd "${WORK_DIR}"
